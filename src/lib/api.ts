@@ -10,15 +10,35 @@ const getHeaders = () => {
 
 export const api = {
   auth: {
-    register: async (email, password) => {
+    sendOtp: async (email: string, type: 'register' | 'forgot_password') => {
+      const res = await fetch(`${API_URL}/auth/send-otp`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ email, type }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      return data;
+    },
+    register: async (email, password, otp) => {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, otp }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
       localStorage.setItem('token', data.token);
+      return data;
+    },
+    resetPassword: async (email, otp, newPassword) => {
+      const res = await fetch(`${API_URL}/auth/forgot-password-reset`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Password reset failed');
       return data;
     },
     login: async (email, password) => {

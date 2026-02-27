@@ -308,7 +308,6 @@ You MUST output a valid JSON object with the following structure:
       "description": "string"
     }
   ],
-  "folderStructure": "string (formatted tree structure)",
   "taskBreakdown": [
     {
       "module": "string",
@@ -319,7 +318,7 @@ You MUST output a valid JSON object with the following structure:
 
 Be specific, actionable, and dependency-aware. Use the tech stack: React + TypeScript + Vite + Tailwind CSS for frontend. For backend, suggest appropriate choices.
 IMPORTANT: You MUST return ONLY the JSON object. Do not include markdown code blocks (like \`\`\`json), no preamble, and no postscript. 
-Ensure the JSON is perfectly valid. Do NOT use raw newline characters inside string values; use "\\\\n" escape sequences if a newline is needed (especially in the folderStructure field).
+Ensure the JSON is perfectly valid. Do NOT use raw newline characters inside string values; use "\\n" escape sequences if a newline is needed.
 Do NOT include any text outside the JSON. Return ONLY valid JSON.`;
 
   try {

@@ -173,7 +173,7 @@ const Auth = () => {
                 {isForgotPassword ? "Reset Password" : isLogin ? "Sign In" : "Create Account"}
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
-                {showOtpStep ? "Verify Identity" : isForgotPassword ? "Recover your account" : isLogin ? "Welcome back, architect" : "Start building blueprints"}
+                {showOtpStep ? "Verify Identity" : isForgotPassword ? "Recover your account" : isLogin ? "Welcome back, Engineer" : "Start building blueprints"}
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckSquare, Layers, GitBranch, Route, FolderTree, ListTodo, BarChart3 } from "lucide-react";
+import { CheckSquare, Layers, GitBranch, Route, ListTodo, BarChart3 } from "lucide-react";
 
 interface Blueprint {
   projectAnalysis?: {
@@ -28,7 +28,7 @@ interface Blueprint {
     title: string;
     description: string;
   }>;
-  folderStructure?: string;
+
   taskBreakdown?: Array<{
     module: string;
     tasks: string[];
@@ -43,11 +43,11 @@ const BlueprintView = ({ blueprint }: { blueprint: Blueprint }) => {
         <div className="gradient-card border border-border rounded-xl p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold font-mono text-foreground">Project Analysis</h2>
+            <h2 className="text-lg font-bold font-mono text-foreground tracking-tighter uppercase">Blueprint Intelligence</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <span className="text-xs font-mono text-muted-foreground block mb-1">Objective</span>
+              <span className="text-xs font-mono text-muted-foreground block mb-1 uppercase tracking-widest">Target Objective</span>
               <p className="text-sm text-foreground">{blueprint.projectAnalysis.objective}</p>
             </div>
             <div>
@@ -61,7 +61,7 @@ const BlueprintView = ({ blueprint }: { blueprint: Blueprint }) => {
                 blueprint.projectAnalysis.complexity === "intermediate" ? "bg-warning/10 text-warning" :
                 "bg-success/10 text-success"
               }`}>
-                {blueprint.projectAnalysis.complexity}
+                {blueprint.projectAnalysis.complexity} Efficiency
               </span>
             </div>
             <div>
@@ -79,24 +79,22 @@ const BlueprintView = ({ blueprint }: { blueprint: Blueprint }) => {
       )}
 
       <Tabs defaultValue="skills" className="w-full">
-        <TabsList className="bg-card border border-border w-full justify-start overflow-x-auto flex-nowrap">
-          <TabsTrigger value="skills" className="font-mono text-xs gap-1.5">
-            <GitBranch className="w-3.5 h-3.5" /> Skills
+        <TabsList className="bg-card border border-border w-full justify-start overflow-x-auto flex-nowrap h-12">
+          <TabsTrigger value="skills" className="font-mono text-xs gap-1.5 uppercase tracking-wider">
+            <GitBranch className="w-3.5 h-3.5" /> Mastery Path
           </TabsTrigger>
-          <TabsTrigger value="checklist" className="font-mono text-xs gap-1.5">
-            <CheckSquare className="w-3.5 h-3.5" /> Checklist
+          <TabsTrigger value="checklist" className="font-mono text-xs gap-1.5 uppercase tracking-wider">
+            <CheckSquare className="w-3.5 h-3.5" /> Validation
           </TabsTrigger>
-          <TabsTrigger value="modules" className="font-mono text-xs gap-1.5">
-            <Layers className="w-3.5 h-3.5" /> Modules
+          <TabsTrigger value="modules" className="font-mono text-xs gap-1.5 uppercase tracking-wider">
+            <Layers className="w-3.5 h-3.5" /> System Architecture
           </TabsTrigger>
-          <TabsTrigger value="roadmap" className="font-mono text-xs gap-1.5">
-            <Route className="w-3.5 h-3.5" /> Roadmap
+          <TabsTrigger value="roadmap" className="font-mono text-xs gap-1.5 uppercase tracking-wider">
+            <Route className="w-3.5 h-3.5" /> Velocity Strategy
           </TabsTrigger>
-          <TabsTrigger value="structure" className="font-mono text-xs gap-1.5">
-            <FolderTree className="w-3.5 h-3.5" /> Structure
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="font-mono text-xs gap-1.5">
-            <ListTodo className="w-3.5 h-3.5" /> Tasks
+
+          <TabsTrigger value="tasks" className="font-mono text-xs gap-1.5 uppercase tracking-wider">
+            <ListTodo className="w-3.5 h-3.5" /> Deployment Tasks
           </TabsTrigger>
         </TabsList>
 
@@ -184,13 +182,7 @@ const BlueprintView = ({ blueprint }: { blueprint: Blueprint }) => {
           </div>
         </TabsContent>
 
-        <TabsContent value="structure" className="mt-6">
-          <div className="gradient-card border border-border rounded-xl p-6">
-            <pre className="font-mono text-xs text-foreground whitespace-pre-wrap">
-              {blueprint.folderStructure || "No folder structure generated."}
-            </pre>
-          </div>
-        </TabsContent>
+
 
         <TabsContent value="tasks" className="mt-6">
           <div className="space-y-4">

@@ -59,7 +59,7 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
         <DialogHeader>
           <DialogTitle className="font-mono text-foreground">New Blueprint</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Describe your project idea in detail. The AI will generate a complete architecture.
+            Input your project vision. Our AI engine will engineer a comprehensive technical blueprint from the ground up.
           </DialogDescription>
         </DialogHeader>
 

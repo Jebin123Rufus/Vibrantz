@@ -1,6 +1,6 @@
-# ArchitectAI - Project Blueprint Generator
+# Vibrantz.AI - Project Blueprint Generator
 
-An advanced AI Project Architect that converts project ideas into complete, structured, execution-ready architecture blueprints.
+An advanced AI Project Architect that converts project visions into complete, structured, execution-ready technical blueprints.
 
 ## 🚀 Built With
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui

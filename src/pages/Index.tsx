@@ -5,23 +5,23 @@ import { Terminal, Layers, GitBranch, Zap, ArrowRight, Code2 } from "lucide-reac
 const features = [
   {
     icon: Layers,
-    title: "Module Architecture",
-    description: "Auto-generated system modules with dependencies, inputs, and outputs.",
+    title: "Structural Intelligence",
+    description: "Deep-linking system modules with automated dependency and data flow mapping.",
   },
   {
     icon: GitBranch,
-    title: "Skill Dependency Trees",
-    description: "Hierarchical skill maps showing exactly what you need to learn.",
+    title: "Mastery Pathways",
+    description: "High-fidelity skill trees designed to bridge the gap from concept to expertise.",
   },
   {
     icon: Code2,
-    title: "Folder Structure",
-    description: "Tech-stack specific project structure ready to scaffold.",
+    title: "Architectural Scaffolding",
+    description: "Project structures optimized for modern tech stacks and rapid deployment.",
   },
   {
     icon: Zap,
-    title: "Execution Roadmap",
-    description: "Step-by-step build order optimized for successful completion.",
+    title: "Velocity Roadmaps",
+    description: "Surgically optimized build orders for peak development efficiency.",
   },
 ];
 
@@ -34,7 +34,7 @@ const Index = () => {
       <nav className="border-b border-border/50 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-foreground">ArchitectAI</span>
+            <span className="font-mono font-bold text-foreground">Vibrantz.AI</span>
           </div>
           <Button variant="outline" size="sm" className="font-mono text-xs" onClick={() => navigate("/auth")}>
             Sign In
@@ -49,17 +49,17 @@ const Index = () => {
           <div className="max-w-3xl mx-auto text-center animate-fade-up">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/5 mb-8">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-mono text-primary">AI-Powered Architecture</span>
+              <span className="text-xs font-mono text-primary">Engineered by Intelligence</span>
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-mono leading-tight text-foreground mb-6">
-              Turn Ideas Into{" "}
+              Turn Vision Into{" "}
               <span className="text-primary glow-text">Executable</span>{" "}
-              Blueprints
+              Reality
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-              Describe your project. Get a complete architecture with skill trees, module design, execution roadmaps, and implementation tasks.
+              The intelligent technical foundation for your next breakthrough. Generate multi-dimensional blueprints, skill maps, and surgical execution roadmaps.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -90,7 +90,7 @@ const Index = () => {
                 <div className="w-3 h-3 rounded-full bg-destructive/60" />
                 <div className="w-3 h-3 rounded-full bg-warning/60" />
                 <div className="w-3 h-3 rounded-full bg-success/60" />
-                <span className="text-xs font-mono text-muted-foreground ml-2">architect.ai</span>
+                <span className="text-xs font-mono text-muted-foreground ml-2">vibrantz.ai</span>
               </div>
               <div className="p-6 font-mono text-sm space-y-2">
                 <div className="text-muted-foreground">
@@ -124,10 +124,10 @@ const Index = () => {
       <section id="features" className="container mx-auto px-4 py-24">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold font-mono text-foreground mb-4">
-            Complete Architecture in Seconds
+            Precision Engineering, Automated
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Every blueprint includes everything you need to go from idea to implementation.
+            Vibrantz.AI deconstructs complex ideas into actionable technical architectures in seconds.
           </p>
         </div>
 
@@ -151,10 +151,10 @@ const Index = () => {
       <section className="container mx-auto px-4 py-24">
         <div className="gradient-card border border-border rounded-2xl p-12 text-center max-w-3xl mx-auto glow-primary">
           <h2 className="text-2xl md:text-3xl font-bold font-mono text-foreground mb-4">
-            Ready to architect your next project?
+            Architect Your Future
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Stop planning in docs. Start building with a structured, AI-generated blueprint.
+            Stop debating implementation details. Start building with industrial-grade AI blueprints.
           </p>
           <Button size="lg" className="font-mono glow-primary" onClick={() => navigate("/auth")}>
             Get Started Free <ArrowRight className="w-4 h-4 ml-2" />
@@ -166,7 +166,7 @@ const Index = () => {
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-muted-foreground">ArchitectAI</span>
+            <span className="font-mono text-sm text-muted-foreground">Vibrantz.AI</span>
           </div>
           <span className="text-xs text-muted-foreground font-mono">Built with AI</span>
         </div>

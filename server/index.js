@@ -220,17 +220,52 @@ app.get('/api/projects', authenticate, async (req, res) => {
 
 app.post('/api/projects', authenticate, async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, projectIdea, description, level, duration, workflow } = req.body;
     const project = new Project({
       userId: req.userId,
       title,
+      projectIdea,
       description,
+      level,
+      duration,
+      workflow,
       status: 'generating'
     });
     await project.save();
     res.json({ ...project._doc, id: project._id });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/ai/suggest-workflow', authenticate, async (req, res) => {
+  try {
+    const { projectIdea, description, level, duration } = req.body;
+    
+    const prompt = `Based on the following project details, suggest a professional project workflow/roadmap.
+    Project Idea: ${projectIdea}
+    Description: ${description}
+    Project Level: ${level}
+    Target Duration: ${duration}
+    
+    The workflow should be a sequence of steps separated by ' > '. 
+    Example: signup > user saved > student dashboard > admin dashboard based on the login > modify , update , delete , retreive student details > students can view their details , records , and new academic updates
+    
+    Provide ONLY the workflow string. Do not include any other text or explanation.`;
+
+    const response = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'You are a senior project manager helping to define a workflow. Return only the workflow steps separated by >.' },
+        { role: 'user', content: prompt },
+      ],
+      model: 'llama-3.3-70b-versatile',
+    });
+
+    const workflow = response.choices[0]?.message?.content || '';
+    res.json({ workflow: workflow.trim().replace(/^"|"$/g, '') });
+  } catch (err) {
+    console.error('Workflow Suggestion Error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -261,72 +296,81 @@ app.patch('/api/projects/:id', authenticate, async (req, res) => {
 app.post('/api/generate', authenticate, async (req, res) => {
   const { projectIdea, projectId } = req.body;
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-
-  const SYSTEM_PROMPT = `You are an advanced AI Project Architect. Your role is to convert a user's project idea into a complete, structured, execution-ready architecture blueprint.
-
-You MUST output a valid JSON object with the following structure:
-{
-  "projectAnalysis": {
-    "objective": "string",
-    "type": "string",
-    "complexity": "beginner|intermediate|advanced",
-    "domains": ["string"]
-  },
-  "skillTree": [
-    {
-      "category": "string",
-      "skills": [
-        {
-          "name": "string",
-          "subskills": ["string"]
-        }
-      ]
-    }
-  ],
-  "knowledgeChecklist": [
-    {
-      "module": "string",
-      "items": ["string"]
-    }
-  ],
-  "moduleArchitecture": [
-    {
-      "name": "string",
-      "purpose": "string",
-      "dependencies": ["string"],
-      "inputs": ["string"],
-      "outputs": ["string"]
-    }
-  ],
-  "executionRoadmap": [
-    {
-      "step": number,
-      "title": "string",
-      "description": "string"
-    }
-  ],
-  "folderStructure": "string (formatted tree structure)",
-  "taskBreakdown": [
-    {
-      "module": "string",
-      "tasks": ["string"]
-    }
-  ]
-}
-
-Be specific, actionable, and dependency-aware. Use the tech stack: React + TypeScript + Vite + Tailwind CSS for frontend. For backend, suggest appropriate choices.
-IMPORTANT: You MUST return ONLY the JSON object. Do not include markdown code blocks (like \`\`\`json), no preamble, and no postscript. 
-Ensure the JSON is perfectly valid. Do NOT use raw newline characters inside string values; use "\\\\n" escape sequences if a newline is needed (especially in the folderStructure field).
-Do NOT include any text outside the JSON. Return ONLY valid JSON.`;
-
   try {
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const SYSTEM_PROMPT = `You are an advanced AI Project Architect. Your role is to convert a user's project idea into a complete, structured, execution-ready architecture blueprint.
+    
+  Additional Context:
+  - Project Level: ${project.level || 'Not specified'}
+  - Project Duration: ${project.duration || 'Not specified'}
+  - Final Workflow: ${project.workflow || 'Not specified'}
+  - Description: ${project.description || 'Not specified'}
+
+  You MUST output a valid JSON object with the following structure:
+  {
+    "projectAnalysis": {
+      "objective": "string",
+      "type": "string",
+      "complexity": "beginner|intermediate|advanced",
+      "domains": ["string"]
+    },
+    "skillTree": [
+      {
+        "category": "string",
+        "skills": [
+          {
+            "name": "string",
+            "subskills": ["string"]
+          }
+        ]
+      }
+    ],
+    "knowledgeChecklist": [
+      {
+        "module": "string",
+        "items": ["string"]
+      }
+    ],
+    "moduleArchitecture": [
+      {
+        "name": "string",
+        "purpose": "string",
+        "dependencies": ["string"],
+        "inputs": ["string"],
+        "outputs": ["string"]
+      }
+    ],
+    "executionRoadmap": [
+      {
+        "step": number,
+        "title": "string",
+        "description": "string"
+      }
+    ],
+    "folderStructure": "string (formatted tree structure)",
+    "taskBreakdown": [
+      {
+        "module": "string",
+        "tasks": ["string"]
+      }
+    ]
+  }
+
+  Be specific, actionable, and dependency-aware. Use the tech stack: React + TypeScript + Vite + Tailwind CSS for frontend. For backend, suggest appropriate choices.
+  IMPORTANT: You MUST return ONLY the JSON object. Do not include markdown code blocks (like \`\`\`json), no preamble, and no postscript. 
+  Ensure the JSON is perfectly valid. Do NOT use raw newline characters inside string values; use "\\\\n" escape sequences if a newline is needed (especially in the folderStructure field).
+  Do NOT include any text outside the JSON. Return ONLY valid JSON.`;
+
     const stream = await groq.chat.completions.create({
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Project Idea: ${projectIdea}\n\nGenerate a complete project architecture blueprint.` },
+        { role: 'user', content: `Project Idea: ${projectIdea}\nWorkflow to follow: ${project.workflow}\n\nGenerate a complete project architecture blueprint based on this specific workflow and idea.` },
       ],
       model: 'llama-3.3-70b-versatile',
       stream: true,

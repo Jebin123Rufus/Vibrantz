@@ -106,9 +106,13 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
             <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full">Step {step}/2</span>
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
+<<<<<<< HEAD
             {step === 1 
               ? "Define the core parameters of your vision."
               : "Review and refine the suggested execution path."}
+=======
+            Input your project vision. Our AI engine will engineer a comprehensive technical blueprint from the ground up.
+>>>>>>> 3f9aa9e5091b2182c71b0cd9ee9ec39d0b00ee0a
           </DialogDescription>
         </DialogHeader>
 

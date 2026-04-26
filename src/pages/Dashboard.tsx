@@ -67,7 +67,7 @@ const Dashboard = () => {
       <nav className="border-b border-border/50 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-foreground">ArchitectAI</span>
+            <span className="font-mono font-bold text-foreground">Vibrantz.AI</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono text-muted-foreground hidden sm:inline">
@@ -83,9 +83,9 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold font-mono text-foreground">Your Projects</h1>
+            <h1 className="text-2xl font-bold font-mono text-foreground">Technical Command</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {projects.length} blueprint{projects.length !== 1 ? "s" : ""} generated
+              Your portfolio of AI-generated architectural blueprints.
             </p>
           </div>
           <Button className="font-mono text-sm" onClick={() => setDialogOpen(true)}>
@@ -101,9 +101,9 @@ const Dashboard = () => {
         ) : projects.length === 0 ? (
           <div className="gradient-card border border-border rounded-xl p-12 text-center">
             <Terminal className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-bold font-mono text-foreground mb-2">No blueprints yet</h3>
+            <h3 className="text-lg font-bold font-mono text-foreground mb-2">The Board is Empty</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Describe your project idea and get a complete architecture blueprint.
+              Initialize your first project idea and watch Vibrantz.AI craft the perfect foundation.
             </p>
             <Button className="font-mono" onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />

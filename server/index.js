@@ -129,7 +129,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = new User({ email, password });
     await user.save();
-    
+
     await OTP.deleteOne({ _id: otpRecord._id });
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
@@ -187,8 +187,8 @@ app.post('/api/auth/google', async (req, res) => {
     });
     const { email, sub: googleId } = ticket.getPayload();
 
-    let user = await User.findOne({ 
-      $or: [{ googleId }, { email }] 
+    let user = await User.findOne({
+      $or: [{ googleId }, { email }]
     });
 
     if (!user) {
@@ -220,7 +220,7 @@ app.get('/api/projects', authenticate, async (req, res) => {
 
 app.post('/api/projects', authenticate, async (req, res) => {
   try {
-    const { title, projectIdea, description, level, duration, workflow } = req.body;
+    const { title, projectIdea, description, level, duration, workflow, techStack } = req.body;
     const project = new Project({
       userId: req.userId,
       title,
@@ -229,6 +229,7 @@ app.post('/api/projects', authenticate, async (req, res) => {
       level,
       duration,
       workflow,
+      techStack,
       status: 'generating'
     });
     await project.save();
@@ -240,31 +241,97 @@ app.post('/api/projects', authenticate, async (req, res) => {
 
 app.post('/api/ai/suggest-workflow', authenticate, async (req, res) => {
   try {
-    const { projectIdea, description, level, duration } = req.body;
-    
-    const prompt = `Based on the following project details, suggest a professional project workflow/roadmap.
-    Project Idea: ${projectIdea}
+    const { description, level, duration } = req.body;
+
+    const prompt = `Perform a deep domain analysis for a project with the following description:
     Description: ${description}
-    Project Level: ${level}
-    Target Duration: ${duration}
+    Target Complexity Level: ${level}
+    Intended Timeline: ${duration}
     
-    The workflow should be a sequence of steps separated by ' > '. 
-    Example: signup > user saved > student dashboard > admin dashboard based on the login > modify , update , delete , retreive student details > students can view their details , records , and new academic updates
+    Requirements:
+    1. Outline how the project can be approached and the steps involved in creating it.
+    2. For EACH step, provide a "title" and a "brief" (what and how will be done).
+    3. Ensure the steps are logical, sequential, and specific to the project.
+    4. The number of steps should be realistic for the "${duration}" timeline and "${level}" level.
+
+    The output MUST be a VALID JSON object with a single key "workflow" containing an array of objects:
+    {
+      "workflow": [
+        { "title": "Step Title", "brief": "Small brief about what and how will be done" }
+      ]
+    }
     
-    Provide ONLY the workflow string. Do not include any other text or explanation.`;
+    Return ONLY the JSON object. No preamble or explanations.`;
 
     const response = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are a senior project manager helping to define a workflow. Return only the workflow steps separated by >.' },
+        {
+          role: 'system',
+          content: 'You are an Expert Project Architect. Your goal is to engineer a realistic, domain-specific execution roadmap. Return ONLY a JSON object.'
+        },
         { role: 'user', content: prompt },
       ],
       model: 'llama-3.3-70b-versatile',
+      response_format: { type: "json_object" }
     });
 
-    const workflow = response.choices[0]?.message?.content || '';
-    res.json({ workflow: workflow.trim().replace(/^"|"$/g, '') });
+    const content = response.choices[0]?.message?.content || '{"workflow": []}';
+    const parsed = JSON.parse(content);
+    res.json({ workflow: parsed.workflow || [] });
   } catch (err) {
     console.error('Workflow Suggestion Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ai/suggest-techstack', authenticate, async (req, res) => {
+  try {
+    const { description, workflow, level } = req.body;
+
+    const prompt = `Analyze the project idea deeply and suggest a highly used technology stack.
+    Description: ${description}
+    Workflow: ${JSON.stringify(workflow)}
+    Project Level: ${level}
+    
+    Modules to analyze and suggest tech for: 
+    - Signup/Login (Auth)
+    - Frontend
+    - Backend
+    - API (Communication/Protocol)
+    - Database
+    - Payment (if relevant)
+    - Any other critical modules for this specific project
+
+    For EACH module:
+    1. Suggest a highly used/industry-standard technology.
+    2. Provide a short, professional reason why this specific tech is recommended for this project.
+    
+    The output MUST be a VALID JSON object with a single key "techStack" containing an array of objects:
+    {
+      "techStack": [
+        { "module": "Module Name", "tech": "Technology Name", "reason": "Specific logical reason" }
+      ]
+    }
+    
+    Return ONLY the JSON object. No preamble or explanations.`;
+
+    const response = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a Senior Technology Architect. You MUST return a valid JSON object with a "techStack" key containing the recommendations.'
+        },
+        { role: 'user', content: prompt },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0]?.message?.content || '{"techStack": []}';
+    const parsed = JSON.parse(content);
+    res.json({ techStack: parsed.techStack || [] });
+  } catch (err) {
+    console.error('Tech Stack Suggestion Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -309,7 +376,8 @@ app.post('/api/generate', authenticate, async (req, res) => {
   Additional Context:
   - Project Level: ${project.level || 'Not specified'}
   - Project Duration: ${project.duration || 'Not specified'}
-  - Final Workflow: ${project.workflow || 'Not specified'}
+  - Final Workflow: ${JSON.stringify(project.workflow || [])}
+  - Selected Tech Stack: ${JSON.stringify(project.techStack || [])}
   - Description: ${project.description || 'Not specified'}
 
   You MUST output a valid JSON object with the following structure:
@@ -317,60 +385,47 @@ app.post('/api/generate', authenticate, async (req, res) => {
     "projectAnalysis": {
       "objective": "string",
       "type": "string",
-      "complexity": "beginner|intermediate|advanced",
-      "domains": ["string"]
+      "complexity": "beginner|intermediate|advanced"
     },
-    "skillTree": [
+    "roadmap": [
       {
-        "category": "string",
-        "skills": [
+        "phase": "string (e.g. Phase 1: Authentication & User Roles)",
+        "description": "Comprehensive overview of this phase's goals",
+        "milestones": [
           {
-            "name": "string",
-            "subskills": ["string"]
+            "id": "string (unique)",
+            "title": "string",
+            "concept": "The technical concept (e.g. JWT, RBAC, Schema Design)",
+            "practicalExample": "A CONCRETE code snippet using the SELECTED TECH (e.g. a React component, a Node.js route, or a Mongoose schema)",
+            "documentation": {
+              "tool": "The specific technology from the techStack for this step",
+              "rationale": "Why this specific tool is used for this specific project feature",
+              "quickStart": "Command or code to initialize/use this tool in this context"
+            },
+            "guidedSteps": ["Granular, low-level implementation instructions"],
+            "verification": "Exactly how to test this specific feature"
           }
         ]
       }
     ],
-    "knowledgeChecklist": [
-      {
-        "module": "string",
-        "items": ["string"]
-      }
-    ],
-    "moduleArchitecture": [
-      {
-        "name": "string",
-        "purpose": "string",
-        "dependencies": ["string"],
-        "inputs": ["string"],
-        "outputs": ["string"]
-      }
-    ],
-    "executionRoadmap": [
-      {
-        "step": number,
-        "title": "string",
-        "description": "string"
-      }
-    ],
-    "folderStructure": "string (formatted tree structure)",
-    "taskBreakdown": [
-      {
-        "module": "string",
-        "tasks": ["string"]
-      }
-    ]
+    "folderStructure": "string (detailed folder tree based on the tech stack)",
+    "technicalOverview": "A deep-dive technical summary of how all modules (Auth, Admin, Dashboards, DB) interact."
   }
 
-  Be specific, actionable, and dependency-aware. Use the tech stack: React + TypeScript + Vite + Tailwind CSS for frontend. For backend, suggest appropriate choices.
-  IMPORTANT: You MUST return ONLY the JSON object. Do not include markdown code blocks (like \`\`\`json), no preamble, and no postscript. 
-  Ensure the JSON is perfectly valid. Do NOT use raw newline characters inside string values; use "\\\\n" escape sequences if a newline is needed (especially in the folderStructure field).
-  Do NOT include any text outside the JSON. Return ONLY valid JSON.`;
+  STRICT INSTRUCTIONS:
+  1. ADHERENCE: You MUST use the "Selected Approach/Workflow" and "Selected Tech Stack" provided below. Do NOT suggest generic alternatives.
+  2. GRANULARITY: If the workflow mentions "Admin Dashboard" or "Student Sections", you MUST create specific milestones for each of those features.
+  3. INTEGRATED DOCS: Provide exhaustive documentation for every tool mentioned in the tech stack.
+  4. SEQUENTIAL: Start from initialization (npm init/vite create) and end with deployment.
+  5. EXAMPLES: Practical examples must be usable, non-placeholder code snippets.
+
+  IMPORTANT: Return ONLY the JSON object. No markdown, no preamble. Use "\\\\n" for newlines.
+  The JSON MUST be perfectly valid. Avoid raw newlines in string values.`;
 
     const stream = await groq.chat.completions.create({
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Project Idea: ${projectIdea}\nWorkflow to follow: ${project.workflow}\n\nGenerate a complete project architecture blueprint based on this specific workflow and idea.` },
+        { role: 'user', content: `Project Idea: ${projectIdea}\nWorkflow to follow: ${JSON.stringify(project.workflow)}\n\nGenerate a complete project architecture blueprint based on this specific workflow and idea.` },
       ],
       model: 'llama-3.3-70b-versatile',
       stream: true,
@@ -390,6 +445,11 @@ app.post('/api/generate', authenticate, async (req, res) => {
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
     res.end();
   }
+});
+
+app.use((req, res) => {
+  console.log('UNMATCHED REQUEST:', req.method, req.url);
+  res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -116,7 +116,8 @@ export const api = {
       description: string; 
       level: string; 
       duration: string; 
-      workflow: string 
+      workflow: any;
+      techStack: any[];
     }) => {
       const res = await fetch(`${API_URL}/projects`, {
         method: 'POST',
@@ -151,7 +152,6 @@ export const api = {
       });
     },
     suggestWorkflow: async (projectDetails: {
-      projectIdea: string,
       description: string,
       level: string,
       duration: string
@@ -163,6 +163,20 @@ export const api = {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to suggest workflow');
+      return data;
+    },
+    suggestTechStack: async (details: {
+      description: string,
+      workflow: any,
+      level: string
+    }) => {
+      const res = await fetch(`${API_URL}/ai/suggest-techstack`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(details),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to suggest tech stack');
       return data;
     }
   }

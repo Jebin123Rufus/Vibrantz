@@ -11,33 +11,26 @@ interface Blueprint {
     objective: string;
     type: string;
     complexity: string;
-    domains: string[];
   };
-  skillTree?: Array<{
-    category: string;
-    skills: Array<{ name: string; subskills: string[] }>;
-  }>;
-  knowledgeChecklist?: Array<{
-    module: string;
-    items: string[];
-  }>;
-  moduleArchitecture?: Array<{
-    name: string;
-    purpose: string;
-    dependencies: string[];
-    inputs: string[];
-    outputs: string[];
-  }>;
-  executionRoadmap?: Array<{
-    step: number;
-    title: string;
+  roadmap?: Array<{
+    phase: string;
     description: string;
+    milestones: Array<{
+      id: string;
+      title: string;
+      concept: string;
+      practicalExample: string;
+      documentation: {
+        tool: string;
+        rationale: string;
+        quickStart: string;
+      };
+      guidedSteps: string[];
+      verification: string;
+    }>;
   }>;
   folderStructure?: string;
-  taskBreakdown?: Array<{
-    module: string;
-    tasks: string[];
-  }>;
+  technicalOverview?: string;
 }
 
 const ProjectDetail = () => {

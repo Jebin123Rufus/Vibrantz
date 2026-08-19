@@ -68,7 +68,7 @@ app.use((req, res, next) => {
 });
 
 const groq = new Groq({
-  apiKey: process.env.VITE_GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY,
 });
 
 const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID);
@@ -239,48 +239,122 @@ app.post('/api/projects', authenticate, async (req, res) => {
   }
 });
 
+// Helper function to call Groq API with robust model fallback and error handling
+const callGroqWithFallback = async (messages, responseFormat = { type: 'json_object' }) => {
+  let models = [
+    'groq/compound-mini',
+    'groq/compound',
+    'qwen/qwen3.6-27b',
+    'allam-2-7b',
+    'openai/gpt-oss-20b'
+  ];
+
+  try {
+    const listRes = await groq.models.list();
+    if (listRes && Array.isArray(listRes.data) && listRes.data.length > 0) {
+      const activeModels = listRes.data
+        .map(m => m.id)
+        .filter(id => !id.includes('whisper') && !id.includes('guard') && !id.includes('orpheus'));
+      if (activeModels.length > 0) {
+        console.log(`[Groq AI] Active chat models for key:`, activeModels);
+        models = [...new Set([...activeModels, ...models])];
+      }
+    }
+  } catch (e) {
+    console.warn(`[Groq AI] Model list query fallback:`, e.message);
+  }
+
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      console.log(`[Groq AI] Attempting model: ${model}`);
+      // Only attach response_format if the model supports JSON mode or test call
+      const options = {
+        messages,
+        model,
+      };
+      if (responseFormat) {
+        options.response_format = responseFormat;
+      }
+      
+      const response = await groq.chat.completions.create(options);
+      console.log(`[Groq AI] Success using model: ${model}`);
+      return response;
+    } catch (err) {
+      console.warn(`[Groq AI] Model ${model} failed (${err.status || err.code}): ${err.message}`);
+      lastError = err;
+      if (err.status === 404 || err.status === 400 || err.status === 429) {
+        continue;
+      }
+      break;
+    }
+  }
+
+  throw lastError;
+};
+
 app.post('/api/ai/suggest-workflow', authenticate, async (req, res) => {
   try {
     const { description, level, duration } = req.body;
 
-    const prompt = `Perform a deep domain analysis for a project with the following description:
-    Description: ${description}
-    Target Complexity Level: ${level}
-    Intended Timeline: ${duration}
-    
-    Requirements:
-    1. Outline how the project can be approached and the steps involved in creating it.
-    2. For EACH step, provide a "title" and a "brief" (what and how will be done).
-    3. Ensure the steps are logical, sequential, and specific to the project.
-    4. The number of steps should be realistic for the "${duration}" timeline and "${level}" level.
+    if (!description || !description.trim()) {
+      return res.status(400).json({ error: 'Project description is required' });
+    }
 
-    The output MUST be a VALID JSON object with a single key "workflow" containing an array of objects:
+    const prompt = `You are Vibrantz.AI's Chief AI Systems Architect.
+    Domain-Specific Rule: Do NOT default to generic MERN web stack. Tailor directly to: "${description}".
+    (e.g., 3D Game -> 3D engine, physics, loop, assets; AI -> pipeline, embeddings, inference; Mobile -> screens, native APIs; Web -> SPA, API, DB).
+
+    Project Complexity: ${level || 'standard'} | Timeline: ${duration || 'flexible'}
+
+    Generate a CRISP, COMPACT 5-stage building roadmap:
+    - Stage 0: Environment & Setup (Repo init, domain access & baseline configs)
+    - Stage 1: Core Interface & Viewport (Main UI / 3D viewport / screens & state)
+    - Stage 2: Core Domain Logic & Engine (Domain processing logic, controllers & event loop)
+    - Stage 3: Data Layer & Persistence (Schemas, models, assets & persistent storage)
+    - Stage 4: Testing & Production Deployment (QA, cloud hosting & CI/CD)
+
+    RULES FOR "brief":
+    - Keep each brief COMPACT (2-3 concise sentences max).
+    - Outline: (1) Core build task, (2) UI/Viewport element, (3) Data/Event flow.
+    - Avoid verbose essays.
+
+    The output MUST be a VALID JSON object with a single key "workflow" containing an array of 5 objects:
     {
       "workflow": [
-        { "title": "Step Title", "brief": "Small brief about what and how will be done" }
+        { 
+          "title": "Stage 0: Environment & Setup", 
+          "brief": "Initialize project repository and domain dependencies. Configure access control and baseline environment variables." 
+        }
       ]
     }
     
-    Return ONLY the JSON object. No preamble or explanations.`;
+    Return ONLY the JSON object. No preamble or markdown wrapping.`;
 
-    const response = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an Expert Project Architect. Your goal is to engineer a realistic, domain-specific execution roadmap. Return ONLY a JSON object.'
-        },
-        { role: 'user', content: prompt },
-      ],
-      model: 'llama-3.3-70b-versatile',
-      response_format: { type: "json_object" }
-    });
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are an Expert Domain Architect. Generate a crisp, compact, domain-specific execution roadmap. Return ONLY valid JSON.'
+      },
+      { role: 'user', content: prompt }
+    ];
 
+    const response = await callGroqWithFallback(messages, { type: 'json_object' });
     const content = response.choices[0]?.message?.content || '{"workflow": []}';
     const parsed = JSON.parse(content);
-    res.json({ workflow: parsed.workflow || [] });
+
+    return res.json({ workflow: parsed.workflow || [] });
   } catch (err) {
     console.error('Workflow Suggestion Error:', err);
-    res.status(500).json({ error: err.message });
+
+    if (err.status === 401 || err.code === 'invalid_api_key') {
+      return res.status(401).json({ error: 'Invalid Groq API Key. Please verify your VITE_GROQ_API_KEY / GROQ_API_KEY environment variable.' });
+    }
+
+    return res.status(err.status || 500).json({
+      error: err.message || 'An error occurred while generating project workflow'
+    });
   }
 });
 
@@ -288,45 +362,52 @@ app.post('/api/ai/suggest-techstack', authenticate, async (req, res) => {
   try {
     const { description, workflow, level } = req.body;
 
-    const prompt = `Analyze the project idea deeply and suggest a highly used technology stack.
-    Description: ${description}
-    Workflow: ${JSON.stringify(workflow)}
-    Project Level: ${level}
+    const prompt = `You are Vibrantz.AI's Lead Technical Architect. Perform an intelligent, deep domain analysis of the project below:
     
-    Modules to analyze and suggest tech for: 
-    - Signup/Login (Auth)
-    - Frontend
-    - Backend
-    - API (Communication/Protocol)
-    - Database
-    - Payment (if relevant)
-    - Any other critical modules for this specific project
+    Project Description & Vision: "${description}"
+    Project Complexity: "${level}"
+    Workflow Stages: ${JSON.stringify(workflow)}
 
-    For EACH module:
-    1. Suggest a highly used/industry-standard technology.
-    2. Provide a short, professional reason why this specific tech is recommended for this project.
+    DOMAIN-SPECIFIC STACK RULES - STRICTLY ENFORCED:
+    - NEVER default to generic MERN or web boilerplate if the project is in a specialized category!
+    - 3D Games / Simulations (e.g. 3D car racing game, VR, RPG): Suggest Unity (C#) / Unreal Engine 5 (C++) / Three.js / React Three Fiber / WebGL / Godot / Rapier/PhysX / Colyseus / Howler.js.
+    - AI / ML / Data Engineering: Suggest Python, FastAPI, PyTorch, LangChain, LlamaIndex, Vector DBs (Pinecone/Milvus/Qdrant), Celery, HuggingFace.
+    - Mobile Apps: Suggest Flutter, React Native, Swift (iOS), Kotlin (Android), Supabase/Firebase.
+    - High-Performance Distributed Systems: Suggest Go (Golang), Rust, gRPC, Apache Kafka, PostgreSQL, Kubernetes.
+    - Full-Stack Web Applications: Suggest React / Next.js / Node.js / Express / Tailwind CSS / PostgreSQL / Redis.
+    - Embedded / IoT / Hardware: Suggest C++, Rust, MQTT, ESP-IDF, FreeRTOS, InfluxDB.
+
+    Analyze what this project SPECIFICALLY is and recommend 6-7 domain-tailored layers matching its actual requirements:
     
+    For EACH layer:
+    - "module": Relevant layer name for this specific domain (e.g., "Frontend / Engine", "Backend / Processing", "Database / Vector / Storage", "Auth & Security", "Specialized Libraries / SDKs", "Deployment / Cloud Host")
+    - "tech": Specific high-demand industry-standard technology tailored to THIS project
+    - "reason": Deep, project-specific technical rationale explaining why this exact tool is necessary for this project's mechanics/architecture
+    - "customAlternatives": 1-2 realistic alternative industry tools
+
     The output MUST be a VALID JSON object with a single key "techStack" containing an array of objects:
     {
       "techStack": [
-        { "module": "Module Name", "tech": "Technology Name", "reason": "Specific logical reason" }
+        { 
+          "module": "Frontend / Engine", 
+          "tech": "Recommended Technology", 
+          "reason": "Tailored explanation for this project",
+          "customAlternatives": "Alternative options"
+        }
       ]
     }
     
-    Return ONLY the JSON object. No preamble or explanations.`;
+    Return ONLY the JSON object. No preamble or markdown wrapping.`;
 
-    const response = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a Senior Technology Architect. You MUST return a valid JSON object with a "techStack" key containing the recommendations.'
-        },
-        { role: 'user', content: prompt },
-      ],
-      model: 'llama-3.3-70b-versatile',
-      response_format: { type: "json_object" }
-    });
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a Senior Domain-Specific Technology Architect. Suggest realistic, domain-specific technology stacks tailored specifically to the project type (Gaming, AI, Mobile, Embedded, Web, or Systems). Return ONLY valid JSON.'
+      },
+      { role: 'user', content: prompt }
+    ];
 
+    const response = await callGroqWithFallback(messages, { type: 'json_object' });
     const content = response.choices[0]?.message?.content || '{"techStack": []}';
     const parsed = JSON.parse(content);
     res.json({ techStack: parsed.techStack || [] });
@@ -371,73 +452,116 @@ app.post('/api/generate', authenticate, async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const SYSTEM_PROMPT = `You are an advanced AI Project Architect. Your role is to convert a user's project idea into a complete, structured, execution-ready architecture blueprint.
+    const SYSTEM_PROMPT = `You are Vibrantz.AI's Chief AI Architect and Technical Educator.
+    Analyze the project vision and build a domain-tailored TryHackMe/GeeksforGeeks-style interactive learning roadmap.
     
-  Additional Context:
-  - Project Level: ${project.level || 'Not specified'}
-  - Project Duration: ${project.duration || 'Not specified'}
-  - Final Workflow: ${JSON.stringify(project.workflow || [])}
-  - Selected Tech Stack: ${JSON.stringify(project.techStack || [])}
-  - Description: ${project.description || 'Not specified'}
+    CRITICAL BEHAVIORAL RULE: NO GENERIC MERN/WEB DEFAULTS.
+    - If this is a 3D Game: write rooms covering 3D Game Engine (Unity/Three.js), Game Loop, Physics, Shaders, 3D Assets, Spatial Audio, Game Servers.
+    - If this is AI/ML: write rooms covering Python/FastAPI, Data Pipelines, PyTorch, Vector DBs, Embedding Models, Agent Orchestration.
+    - If this is Mobile: write rooms covering React Native/Flutter, Native Device APIs, Mobile State, Push Notifications.
+    - Tailor every room, code snippet, and explanation directly to: "${project.title || projectIdea}".
 
-  You MUST output a valid JSON object with the following structure:
-  {
-    "projectAnalysis": {
-      "objective": "string",
-      "type": "string",
-      "complexity": "beginner|intermediate|advanced"
-    },
-    "roadmap": [
-      {
-        "phase": "string (e.g. Phase 1: Authentication & User Roles)",
-        "description": "Comprehensive overview of this phase's goals",
-        "milestones": [
-          {
-            "id": "string (unique)",
-            "title": "string",
-            "concept": "The technical concept (e.g. JWT, RBAC, Schema Design)",
-            "practicalExample": "A CONCRETE code snippet using the SELECTED TECH (e.g. a React component, a Node.js route, or a Mongoose schema)",
-            "documentation": {
-              "tool": "The specific technology from the techStack for this step",
-              "rationale": "Why this specific tool is used for this specific project feature",
-              "quickStart": "Command or code to initialize/use this tool in this context"
-            },
-            "guidedSteps": ["Granular, low-level implementation instructions"],
-            "verification": "Exactly how to test this specific feature"
-          }
-        ]
-      }
-    ],
-    "folderStructure": "string (detailed folder tree based on the tech stack)",
-    "technicalOverview": "A deep-dive technical summary of how all modules (Auth, Admin, Dashboards, DB) interact."
-  }
-
-  STRICT INSTRUCTIONS:
-  1. ADHERENCE: You MUST use the "Selected Approach/Workflow" and "Selected Tech Stack" provided below. Do NOT suggest generic alternatives.
-  2. GRANULARITY: If the workflow mentions "Admin Dashboard" or "Student Sections", you MUST create specific milestones for each of those features.
-  3. INTEGRATED DOCS: Provide exhaustive documentation for every tool mentioned in the tech stack.
-  4. SEQUENTIAL: Start from initialization (npm init/vite create) and end with deployment.
-  5. EXAMPLES: Practical examples must be usable, non-placeholder code snippets.
-
-  IMPORTANT: Return ONLY the JSON object. No markdown, no preamble. Use "\\\\n" for newlines.
-  The JSON MUST be perfectly valid. Avoid raw newlines in string values.`;
-
-    const stream = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Project Idea: ${projectIdea}\nWorkflow to follow: ${JSON.stringify(project.workflow)}\n\nGenerate a complete project architecture blueprint based on this specific workflow and idea.` },
+    Project Title: ${project.title || projectIdea}
+    Project Level: ${project.level || 'Standard'}
+    Target Duration: ${project.duration || 'Flexible'}
+    Workflow Summary: ${JSON.stringify((project.workflow || []).map((w, i) => `${i}. ${w.title}`)) }
+    Tech Stack Summary: ${JSON.stringify((project.techStack || []).map(t => `${t.module}: ${t.tech}`)) }
+    
+    OUTPUT FORMAT: You MUST return a VALID JSON object matching this schema:
+    {
+      "projectAnalysis": {
+        "objective": "${project.title || 'Technical Project Architecture'}",
+        "type": "Domain-Specific Architecture & Learning Blueprint",
+        "complexity": "${project.level || 'Standard'}"
+      },
+      "techStackTable": [
+        {
+          "layer": "Architecture Layer",
+          "recommendation": "Chosen Technology",
+          "whySelected": "Specific justification for this project",
+          "customAlternatives": "User Custom Alternatives"
+        }
       ],
-      model: 'llama-3.3-70b-versatile',
-      stream: true,
-    });
-
-    let fullText = '';
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      fullText += content;
-      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
+      "architectureDiagram": "ASCII or Mermaid diagram showing client, engine, processing backend, data layer & external services flow",
+      "roadmap": [
+        {
+          "phase": "Module 0: Day-0 Environment & Authentication Setup",
+          "description": "Module overview and prerequisites",
+          "milestones": [
+            {
+              "id": "m-0-1",
+              "title": "Room 0.1: Project Initialization & Domain Setup",
+              "concept": "1. 📖 Concept & Theory (What & Why):\nClear plain-language explanation of why this concept is required for this specific project.",
+              "implementationBlueprint": "2. 🛠️ Implementation Blueprint:\nStep-by-step logic and industry-standard pattern to implement it.",
+              "practicalExample": "// 3. 💻 Project-Specific Hands-On Code\n// File: path/to/project_file.ext\n// Concrete annotated code snippet written specifically for this project",
+              "documentation": {
+                "tool": "Tool Name",
+                "rationale": "Tool Rationale",
+                "quickStart": "Command or setup script"
+              },
+              "guidedSteps": [
+                "Step 1: Concrete guided instruction",
+                "Step 2: Concrete guided instruction"
+              ],
+              "verification": "4. 🧪 Verification & Testing:\nConcrete instructions on how to test that this room's task works.",
+              "knowledgeCheck": [
+                "Completed task action 1",
+                "Completed task action 2",
+                "Concept Check: Comprehension self-assessment"
+              ]
+            }
+          ]
+        }
+      ],
+      "folderStructure": "Project directory layout suited for this tech stack",
+      "technicalOverview": "Comprehensive architecture summary."
     }
 
+    Cover 4-5 focused Modules from Day-0 Setup, Core Viewport/Engine, Backend/Processing & Data, to Testing & Cloud Deployment.
+    CRITICAL: Return ONLY valid JSON. Escape internal newlines inside strings with \\\\n.`;
+
+    const models = [
+      'groq/compound-mini',
+      'groq/compound',
+      'qwen/qwen3.6-27b',
+      'allam-2-7b',
+      'openai/gpt-oss-20b'
+    ];
+
+    let stream = null;
+    let selectedModel = null;
+    for (const model of models) {
+      try {
+        console.log(`[Groq AI Stream] Initiating blueprint stream with model: ${model}`);
+        stream = await groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: `Project Vision: ${projectIdea}\n\nGenerate the complete interactive TryHackMe/GeeksforGeeks architecture blueprint JSON.` },
+          ],
+          model,
+          response_format: { type: "json_object" },
+          stream: true,
+        });
+        selectedModel = model;
+        break;
+      } catch (err) {
+        console.warn(`[Groq AI Stream] Model ${model} failed (${err.status || err.code}): ${err.message}`);
+        if (err.status === 404 || err.status === 400) continue;
+        throw err;
+      }
+    }
+
+    if (!stream) throw new Error("Failed to initialize AI blueprint streaming model");
+    console.log(`[Groq AI Stream] Streaming from ${selectedModel}...`);
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
+      }
+    }
+
+    console.log(`[Groq AI Stream] Completed stream for ${projectId}`);
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (err) {

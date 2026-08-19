@@ -140,32 +140,34 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
       }
       onOpenChange(o);
     }}>
-      <DialogContent className="gradient-card border-border max-w-2xl overflow-y-auto max-h-[90vh] scrollbar-hide">
-        <DialogHeader>
-          <DialogTitle className="font-mono text-foreground flex items-center gap-2">
-            {step === 1 ? "Blueprint Requirements" : step === 2 ? "Execution Strategy" : step === 3 ? "Technology Stack" : "Ready for Launch"}
-            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full">Step {step}/4</span>
+      <DialogContent className="gradient-card border-border max-w-3xl w-[95vw] overflow-hidden max-h-[92vh] flex flex-col p-6 sm:p-8">
+        <DialogHeader className="shrink-0 pb-2">
+          <DialogTitle className="font-mono text-foreground flex items-center justify-between gap-2">
+            <span>
+              {step === 1 ? "Blueprint Requirements" : step === 2 ? "Execution Strategy" : step === 3 ? "Domain Architecture & Tech Stack" : "Ready for Launch"}
+            </span>
+            <span className="text-[11px] bg-primary/20 text-primary px-2.5 py-0.5 rounded-full font-mono">Step {step}/4</span>
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-muted-foreground text-xs">
             {step === 1 
               ? "Define the core parameters of your vision."
               : step === 2 
-              ? "Review the approach and steps for your project."
+              ? "Review the step-by-step building strategy tailored for your project."
               : step === 3
-              ? "The recommended technology modules for your architecture."
+              ? "Custom, in-demand technology recommendations tailored specifically to your project domain."
               : "Confirm everything and generate your final roadmap."}
           </DialogDescription>
         </DialogHeader>
 
         {step === 1 ? (
-          <div className="space-y-6 mt-4">
+          <div className="space-y-5 mt-2 overflow-y-auto pr-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-mono text-xs text-muted-foreground">Project Title</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="My Awesome App"
+                  placeholder="e.g. 3D Car Racing Game, AI Agent Platform"
                   className="bg-background/50 font-mono text-sm"
                 />
               </div>
@@ -185,53 +187,45 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe features, target audience, and core functionality in detail..."
-                rows={6}
+                placeholder="Describe core mechanics, gameplay, features, target users, or backend requirements in detail..."
+                rows={5}
                 className="bg-background/50 font-mono text-sm resize-none"
               />
             </div>
 
             <div className="space-y-3">
               <Label className="font-mono text-xs text-muted-foreground">Project Level</Label>
-              <RadioGroup value={level} onValueChange={setLevel} className="grid grid-cols-2 gap-2">
+              <RadioGroup value={level} onValueChange={setLevel} className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <Label
                   htmlFor="miniproject"
-                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${level === 'miniproject' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
+                  className={`flex flex-col p-3 border rounded-lg cursor-pointer transition-all ${level === 'miniproject' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Mini Project</span>
-                    <span className="text-[10px] text-muted-foreground">Quick prototype</span>
-                  </div>
+                  <span className="text-xs font-bold font-mono">Mini Project</span>
+                  <span className="text-[10px] text-muted-foreground">Prototype</span>
                   <RadioGroupItem value="miniproject" id="miniproject" className="sr-only" />
                 </Label>
                 <Label
                   htmlFor="resume"
-                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${level === 'resume' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
+                  className={`flex flex-col p-3 border rounded-lg cursor-pointer transition-all ${level === 'resume' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Resume Project</span>
-                    <span className="text-[10px] text-muted-foreground">Portfolio worthy</span>
-                  </div>
+                  <span className="text-xs font-bold font-mono">Resume Level</span>
+                  <span className="text-[10px] text-muted-foreground">Portfolio</span>
                   <RadioGroupItem value="resume" id="resume" className="sr-only" />
                 </Label>
                 <Label
                   htmlFor="production"
-                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${level === 'production' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
+                  className={`flex flex-col p-3 border rounded-lg cursor-pointer transition-all ${level === 'production' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Production Level</span>
-                    <span className="text-[10px] text-muted-foreground">Ready for deployment</span>
-                  </div>
+                  <span className="text-xs font-bold font-mono">Production</span>
+                  <span className="text-[10px] text-muted-foreground">Deployment</span>
                   <RadioGroupItem value="production" id="production" className="sr-only" />
                 </Label>
                 <Label
                   htmlFor="scalable"
-                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${level === 'scalable' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
+                  className={`flex flex-col p-3 border rounded-lg cursor-pointer transition-all ${level === 'scalable' ? 'border-primary bg-primary/10' : 'border-border bg-background/50'}`}
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Startup Scalable</span>
-                    <span className="text-[10px] text-muted-foreground">High scalability focus</span>
-                  </div>
+                  <span className="text-xs font-bold font-mono">Startup Scalable</span>
+                  <span className="text-[10px] text-muted-foreground">High Scale</span>
                   <RadioGroupItem value="scalable" id="scalable" className="sr-only" />
                 </Label>
               </RadioGroup>
@@ -245,7 +239,7 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing Concept...
+                  Analyzing Domain Architecture...
                 </>
               ) : (
                 <>
@@ -255,53 +249,51 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
             </Button>
           </div>
         ) : step === 2 ? (
-          <div className="space-y-6 mt-4">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <Label className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Project Approach</Label>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-mono" onClick={() => setStep(1)}>
-                  <ArrowLeft className="w-3 h-3 mr-1" /> Back
-                </Button>
+          <div className="space-y-4 mt-2 overflow-y-auto pr-1 flex-1">
+            <div className="flex justify-between items-center pb-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <Label className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Project Building Strategy</Label>
               </div>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px] font-mono" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-3 h-3 mr-1" /> Back
+              </Button>
+            </div>
 
-              <div className="space-y-3 mt-2 animate-fade-up">
-                {Array.isArray(workflow) ? (
-                  workflow.map((item, idx) => (
-                    <div key={idx} className="flex gap-4 items-start group relative">
-                      <div className="flex flex-col items-center">
-                        <div className="w-7 h-7 rounded-full border border-primary/50 flex items-center justify-center text-[10px] font-mono font-bold bg-primary/5 text-primary group-hover:scale-110 transition-transform z-10">
-                          {idx + 1}
-                        </div>
-                        {idx < workflow.length - 1 && (
-                          <div className="w-px h-full bg-gradient-to-b from-primary/50 to-transparent absolute top-7 bottom-0" />
-                        )}
+            <div className="space-y-3 animate-fade-up max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20">
+              {Array.isArray(workflow) ? (
+                workflow.map((item, idx) => (
+                  <div key={idx} className="flex gap-3 items-start group relative">
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full border border-primary/50 flex items-center justify-center text-xs font-mono font-bold bg-primary/10 text-primary group-hover:scale-110 transition-transform z-10">
+                        {idx + 1}
                       </div>
-                      <div className="flex-1 p-3 rounded-lg border border-border bg-black/40 group-hover:border-primary/40 group-hover:bg-primary/5 transition-all duration-300">
-                        <h4 className="text-xs font-bold font-mono text-primary mb-1">{item?.title || "Step " + (idx + 1)}</h4>
-                        <p className="text-[11px] font-mono text-muted-foreground leading-relaxed">{item?.brief || (typeof item === 'string' ? item : "")}</p>
-                      </div>
+                      {idx < workflow.length - 1 && (
+                        <div className="w-px h-full bg-gradient-to-b from-primary/50 to-transparent absolute top-7 bottom-0" />
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <div className="p-4 rounded-lg border border-dashed border-border text-center text-[10px] font-mono text-muted-foreground">
-                    No approach steps suggested. Please try again.
+                    <div className="flex-1 p-3.5 rounded-xl border border-border bg-black/40 group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
+                      <h4 className="text-xs font-bold font-mono text-primary mb-1">{item?.title || "Stage " + (idx + 1)}</h4>
+                      <p className="text-xs font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap">{item?.brief || (typeof item === 'string' ? item : "")}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs font-mono text-muted-foreground">
+                  No approach steps suggested. Please try again.
+                </div>
+              )}
             </div>
 
             <Button
               onClick={handleSuggestTechStack}
               disabled={loadingTech || workflow.length === 0}
-              className="w-full font-mono"
+              className="w-full font-mono mt-2"
             >
               {loadingTech ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing Tech...
+                  Selecting Domain Tech Stack...
                 </>
               ) : (
                 <>
@@ -311,106 +303,91 @@ const NewProjectDialog = ({ open, onOpenChange, onCreated }: Props) => {
             </Button>
           </div>
         ) : step === 3 ? (
-          <div className="space-y-6 mt-4">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-primary" />
-                  <Label className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Recommended Architecture</Label>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-mono" onClick={() => setStep(2)}>
-                  <ArrowLeft className="w-3 h-3 mr-1" /> Adjust Approach
-                </Button>
+          <div className="space-y-4 mt-2 overflow-y-auto pr-1 flex-1">
+            <div className="flex justify-between items-center pb-1">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary" />
+                <Label className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Domain-Tailored Tech Stack</Label>
               </div>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px] font-mono" onClick={() => setStep(2)}>
+                <ArrowLeft className="w-3 h-3 mr-1" /> Adjust Workflow
+              </Button>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {techStack.map((item, idx) => (
-                  <HoverCard key={idx}>
-                    <HoverCardTrigger asChild>
-                      <div className="p-4 rounded-xl border border-border bg-black/40 hover:border-primary/50 transition-all group relative">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] font-mono text-primary/70 uppercase tracking-tighter">
-                            {item.module}
-                          </span>
-                          <div className="flex gap-1">
-                            {item.isCustom && <span className="text-[8px] bg-yellow-500/20 text-yellow-500 px-1 rounded">Custom</span>}
-                            <Info className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                        <div className="text-sm font-bold font-mono text-foreground flex items-center gap-2">
-                          <Code className="w-4 h-4 text-primary/40" />
-                          <input 
-                            value={item.tech}
-                            onChange={(e) => {
-                              const newStack = [...techStack];
-                              newStack[idx].tech = e.target.value;
-                              newStack[idx].isCustom = true;
-                              setTechStack(newStack);
-                            }}
-                            className="bg-transparent border-none p-0 text-sm font-bold font-mono text-foreground focus:ring-0 w-full"
-                            placeholder="Enter Technology"
-                          />
-                        </div>
-                        
-                        <div className="mt-2 flex justify-end">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-5 text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => {
-                              const newStack = [...techStack];
-                              newStack[idx].tech = "";
-                              newStack[idx].reason = "User specified custom technology";
-                              newStack[idx].isCustom = true;
-                              setTechStack(newStack);
-                            }}
-                          >
-                            Use Custom
-                          </Button>
-                        </div>
-
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/20 hover:bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTechStack(techStack.filter((_, i) => i !== idx));
-                          }}
-                        >
-                          <Plus className="w-3 h-3 rotate-45" />
-                        </Button>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80 gradient-card border-primary/20">
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-bold text-primary font-mono flex items-center gap-2">
-                          <Shield className="w-3 h-3" /> Engineering Rationale
-                        </h4>
-                        <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                          {item.reason}
-                        </p>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                ))}
-                
+            <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20">
+              {techStack.map((item, idx) => (
                 <div 
-                  onClick={() => {
-                    setTechStack([...techStack, { module: "Custom Module", tech: "", reason: "User defined choice", isCustom: true }]);
-                  }}
-                  className="p-4 rounded-xl border border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer bg-black/10 group"
+                  key={idx} 
+                  className="p-4 rounded-xl border border-border bg-black/60 hover:border-primary/50 transition-all flex flex-col gap-2.5 relative group shadow-md"
                 >
-                  <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Add Custom Choice</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                        {item.module}
+                      </span>
+                      {item.isCustom && (
+                        <span className="text-[9px] font-mono bg-warning/20 text-warning px-2 py-0.5 rounded">
+                          Custom
+                        </span>
+                      )}
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 rounded-full bg-destructive/10 hover:bg-destructive text-destructive-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTechStack(techStack.filter((_, i) => i !== idx));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 rotate-45" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full">
+                    <Code className="w-4 h-4 text-primary shrink-0" />
+                    <input 
+                      value={item.tech}
+                      onChange={(e) => {
+                        const newStack = [...techStack];
+                        newStack[idx].tech = e.target.value;
+                        newStack[idx].isCustom = true;
+                        setTechStack(newStack);
+                      }}
+                      className="bg-muted/40 border border-border/60 focus:border-primary rounded px-3 py-1.5 text-xs font-bold font-mono text-foreground w-full transition-colors"
+                      placeholder="Enter Technology..."
+                    />
+                  </div>
+
+                  <div className="text-xs font-mono text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/30 leading-relaxed whitespace-pre-wrap">
+                    <span className="text-[10px] font-bold uppercase text-primary/80 block mb-1">Architecture Rationale:</span>
+                    {item.reason}
+                  </div>
+
+                  {item.customAlternatives && (
+                    <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground pt-0.5">
+                      <span className="text-warning/90 font-bold shrink-0">Alternatives:</span>
+                      <span className="truncate italic">{item.customAlternatives}</span>
+                    </div>
+                  )}
                 </div>
+              ))}
+              
+              <div 
+                onClick={() => {
+                  setTechStack([...techStack, { module: "Custom Layer", tech: "", reason: "User defined custom architecture layer", isCustom: true }]);
+                }}
+                className="p-3.5 rounded-xl border border-dashed border-primary/40 flex items-center justify-center gap-2 text-primary hover:bg-primary/5 transition-all cursor-pointer font-mono text-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Custom Technology Choice</span>
               </div>
             </div>
 
             <Button
               onClick={() => setStep(4)}
               disabled={techStack.length === 0}
-              className="w-full font-mono"
+              className="w-full font-mono mt-2"
             >
               Confirm Architecture & Proceed <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

@@ -121,35 +121,51 @@ const ProjectDetail = () => {
       }
 
       // Parse the complete JSON
-      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        let rawJson = jsonMatch[0];
-        
-        // Remove markdown backticks if included
-        rawJson = rawJson.replace(/^```json/, '').replace(/```$/, '').trim();
-
-        try {
-          const blueprintData = JSON.parse(rawJson);
-          setBlueprint(blueprintData);
-          await api.projects.update(id, { blueprint: blueprintData, status: "complete" });
-          setProject((prev: any) => ({ ...prev, status: "complete", blueprint: blueprintData }));
-        } catch (parseError: any) {
-          console.error("Standard parse failed, trying sanitized parse", parseError);
-          try {
-            // Find raw newlines inside double quotes and escape them
-            const cleanedJson = rawJson.replace(/"([^"]*)"/g, (match, p1) => {
-              return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
-            });
-            const blueprintData = JSON.parse(cleanedJson);
-            setBlueprint(blueprintData);
-            await api.projects.update(id, { blueprint: blueprintData, status: "complete" });
-            setProject((prev: any) => ({ ...prev, status: "complete", blueprint: blueprintData }));
-          } catch (finalError) {
-            throw new Error(`Failed to parse AI response: ${parseError.message}`);
-          }
-        }
+      let rawJson = fullText.trim();
+      if (rawJson.includes('```json')) {
+        rawJson = rawJson.split('```json')[1].split('```')[0].trim();
+      } else if (rawJson.includes('```')) {
+        rawJson = rawJson.split('```')[1].split('```')[0].trim();
       } else {
-        throw new Error("No architectural blueprint found in AI response");
+        const firstBrace = rawJson.indexOf('{');
+        const lastBrace = rawJson.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          rawJson = rawJson.slice(firstBrace, lastBrace + 1);
+        }
+      }
+
+      let blueprintData = null;
+      try {
+        blueprintData = JSON.parse(rawJson);
+      } catch (parseError: any) {
+        console.warn("Direct JSON parse failed, cleaning sanitized string...", parseError);
+        try {
+          let sanitized = rawJson
+            .replace(/,\s*([\]}])/g, '$1') // remove trailing commas before close bracket
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // strip non-printable characters
+            .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match) => {
+              return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+            });
+          
+          // If closing brace is missing due to cut-off, try append
+          if (!sanitized.endsWith('}')) {
+            if (sanitized.lastIndexOf(']') > sanitized.lastIndexOf('}')) {
+              sanitized += '}';
+            } else {
+              sanitized += ']}';
+            }
+          }
+          blueprintData = JSON.parse(sanitized);
+        } catch (finalError: any) {
+          console.error("Sanitized parse failed, raw string:", rawJson);
+          throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        }
+      }
+
+      if (blueprintData) {
+        setBlueprint(blueprintData);
+        await api.projects.update(id, { blueprint: blueprintData, status: "complete" });
+        setProject((prev: any) => ({ ...prev, status: "complete", blueprint: blueprintData }));
       }
     } catch (error: any) {
       toast({ title: "Generation failed", description: error.message, variant: "destructive" });
